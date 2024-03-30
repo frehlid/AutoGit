@@ -40,7 +40,8 @@ def get_commit_message():
     r = json.loads(r.text)
 
     if (r.get("should_commit")  == "Yes"):
-        git_push(r.get("message"))
+        message = r.get("message").replace("Commit message:", "")
+        git_push(message)
 
 if  __name__ == "__main__":
     get_commit_message()
