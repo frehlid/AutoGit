@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 
 llm = Llama(
   model_path="./mistral-7b-instruct-v0.2.Q4_K_M.gguf",  
-  #n_ctx=32768,  
+  n_ctx=32768,  
   n_threads=8,            
   chat_formaat="llama-2"
   #n_gpu_layers=35         
@@ -12,9 +12,9 @@ def ask_should_commit(changes):
     response = llm.create_chat_completion(
             messages = [
                 {"role": "system", 
-                 "content": "You are a git assistant. You can only answer with one word, 'yes' or 'no'. Do not explain your answer more."},
+                 "content": "You are a git assistant. You can only answer with 'Yes' or 'No'."},
                 {"role": "user",
-                 "content": f"Are these git changes worth committing to git? {changes}. You must answer with one word, 'yes' or 'no'. Do not explain your answer more."
+                 "content": f"In one word, are these git changes worth committing to git? {changes}. You must answer with 'Yes' or 'No'. Yes or No:" 
                  }
             ])
     return response['choices'][0]['message']['content']
@@ -25,23 +25,20 @@ def ask_commit_message(changes):
                 {"role": "system", 
                  "content": "You are a git assistant. You only respond with messages for git commits."},
                 {"role": "user",
-                 "content": f"What message would you write for this git commit? {changes} Only respond with the commit message."
+                 "content": f"What message would you write for this git commit? {changes} Only respond with a short commit message."
                  }
             ])
     return response['choices'][0]['message']['content']
 
-def ask_commit():
+def ask_commit(changes):
     should_commit = ""
-    first_word = ""
     while True:
         should_commit = ask_should_commit(changes)
         print(should_commit)
-        first_word = should_commit.split()[0]
-        print(first_word)
-        if (first_word == "Yes" or first_word == "No" or first_word == "Yes." or first_word == "No."):
+        if ("Yes" in should_commit or "No" in should_commit):
             break
-
-    if (first_word == "No"):
+        
+    if ("No" in should_commit):
         return ""
 
     return ask_commit_message(changes)
@@ -54,9 +51,10 @@ def get_commit():
     input_changes = data.get("changes", "")
     commit_message = ask_commit(input_changes)
 
-    if (commit_messae == ""):
+    if (commit_message == ""):
         return jsonify({"should_commit": "No", "message":"Changes are not deemed significant enough for a commit"})
     else:
         return jsonify({"should_commit":"Yes", "message":commit_message})
 
-
+if __name__ == '__main__':
+    app.run(debug=True)
